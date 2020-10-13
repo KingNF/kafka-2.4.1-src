@@ -69,7 +69,11 @@ public class ApiVersionsRequest extends AbstractRequest {
     public ApiVersionsRequest(ApiVersionsRequestData data, short version, Short unsupportedRequestVersion) {
         super(ApiKeys.API_VERSIONS, version);
         this.data = data;
-
+        /*
+        代理处理的ApiVersion请求版本高于受支持的版本。它通过将请求视为v0来处理，并使用v0响应模式返回响应。这样做的原因是，
+        客户端在发送此请求时尚不知道代理支持的版本，因此，它可以使用最新版本，而不必假设支持的最低版本，
+        并且仅在必要时回退到旧版本。
+         */
         // Unlike other request types, the broker handles ApiVersion requests with higher versions than
         // supported. It does so by treating the request as if it were v0 and returns a response using
         // the v0 response schema. The reason for this is that the client does not yet know what versions

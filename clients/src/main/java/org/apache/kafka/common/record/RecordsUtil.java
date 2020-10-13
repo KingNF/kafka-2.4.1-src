@@ -31,7 +31,7 @@ public class RecordsUtil {
      * are not batched (put another way, each batch always has 1 record).
      *
      * If a client requests records in v1 format starting from the middle of an uncompressed batch in v2 format, we
-     * need to drop records from the batch during the conversion. Some versions of librdkafka rely on this for
+     * need to drop records from the batch during the conversion. Some versions of librd kafka rely on this for
      * correctness.
      *
      * The temporaryMemoryBytes computation assumes that the batches are not loaded into the heap
@@ -61,7 +61,7 @@ public class RecordsUtil {
                 totalSizeEstimate += batch.sizeInBytes();
                 recordBatchAndRecordsList.add(new RecordBatchAndRecords(batch, null, null));
             } else {
-                // source magic greater than tomagic can down-convert
+                // source magic greater than to magic can down-convert
                 List<Record> records = new ArrayList<>();
                 for (Record record : batch) {
                     if (toMagic > RecordBatch.MAGIC_VALUE_V1 || batch.isCompressed() || record.offset() >= firstOffset)

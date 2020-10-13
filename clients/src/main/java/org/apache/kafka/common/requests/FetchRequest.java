@@ -224,6 +224,7 @@ public class FetchRequest extends AbstractRequest {
     private final int maxBytes;
     private final IsolationLevel isolationLevel;
 
+
     // Note: the iteration order of this map is significant, since it determines the order
     // in which partitions appear in the message.  For this reason, this map should have a
     // deterministic iteration order, like LinkedHashMap or TreeMap (but unlike HashMap).
@@ -408,12 +409,15 @@ public class FetchRequest extends AbstractRequest {
         maxWait = struct.get(MAX_WAIT_TIME);
         minBytes = struct.get(MIN_BYTES);
         maxBytes = struct.getOrElse(MAX_BYTES, DEFAULT_RESPONSE_MAX_BYTES);
-
+        //事务的隔离级别，消息的可见性
         if (struct.hasField(ISOLATION_LEVEL))
             isolationLevel = IsolationLevel.forId(struct.get(ISOLATION_LEVEL));
         else
+            //默认是读未提交 的隔离级别
             isolationLevel = IsolationLevel.READ_UNCOMMITTED;
+
         toForget = new ArrayList<>(0);
+        // consumer 将会忽略的topics ，支持增量平衡协议
         if (struct.hasField(FORGOTTEN_TOPICS)) {
             for (Object forgottenTopicObj : struct.get(FORGOTTEN_TOPICS)) {
                 Struct forgottenTopic = (Struct) forgottenTopicObj;
@@ -424,9 +428,14 @@ public class FetchRequest extends AbstractRequest {
                 }
             }
         }
+
+        //获取meta元数据
         metadata = new FetchMetadata(struct.getOrElse(SESSION_ID, INVALID_SESSION_ID),
             struct.getOrElse(SESSION_EPOCH, FINAL_EPOCH));
 
+        //从request中解析出需要解析的Topic和Partition，以及对应的 fetch offset，以及对应的 FetchRequest 字段
+        //这里HashMap使用的LinkedHashMap ，是因为LinkedHashMap有个特性，可以记录读入和读出的顺序，因为consumer要保证
+        //读取到的顺序要和其在kafka broker中的存储的顺序一致。
         fetchData = new LinkedHashMap<>();
         for (Object topicResponseObj : struct.get(TOPICS)) {
             Struct topicResponse = (Struct) topicResponseObj;
@@ -435,6 +444,7 @@ public class FetchRequest extends AbstractRequest {
                 Struct partitionResponse = (Struct) partitionResponseObj;
                 int partition = partitionResponse.get(PARTITION_ID);
                 long offset = partitionResponse.get(FETCH_OFFSET);
+                //解析出可支持最大的partition-data 尺寸
                 int maxBytes = partitionResponse.get(PARTITION_MAX_BYTES);
                 long logStartOffset = partitionResponse.getOrElse(LOG_START_OFFSET, INVALID_LOG_START_OFFSET);
 
@@ -444,6 +454,7 @@ public class FetchRequest extends AbstractRequest {
                 fetchData.put(new TopicPartition(topic, partition), partitionData);
             }
         }
+        //解析rackId 默认为""
         rackId = struct.getOrElse(RACK_ID, "");
     }
 
